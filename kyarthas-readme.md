@@ -1,8 +1,10 @@
 ## Release Note For kyarthas
 
 #### 发版
-./mvnw clean deploy -DskipTests -Pdev
+./mvnw clean deploy -DskipTests -P dev -P full
 
+### 3.6.7-kyarthas-r2
+解决安全漏洞问题(KE-40431)
 
 ### 3.6.7-kyarthas-r1
 升级到arthas 3.6.7版本, 解决安全漏洞问题(KE-40331)

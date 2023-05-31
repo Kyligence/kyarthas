@@ -14,7 +14,7 @@ import org.zeroturnaround.zip.ZipUtil;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 /**
- * 
+ *
  * @author hengyunabc 2020-06-22
  *
  */
@@ -25,6 +25,8 @@ public class ArthasAgent {
     private static final String ARTHAS_BOOTSTRAP = "com.taobao.arthas.core.server.ArthasBootstrap";
     private static final String GET_INSTANCE = "getInstance";
     private static final String IS_BIND = "isBind";
+    private static final String RESET = "reset";
+    private static final String DESTORY = "destroy";
 
     private String errorMessage;
 
@@ -32,6 +34,10 @@ public class ArthasAgent {
     private String arthasHome;
     private boolean slientInit;
     private Instrumentation instrumentation;
+
+    private AttachArthasClassloader arthasClassLoader;
+    private Object bootstrap;
+    private Class<?> bootstrapClass;
 
     public ArthasAgent() {
         this(null, null, false, null);
@@ -115,16 +121,14 @@ public class ArthasAgent {
             if (!arthasCoreJarFile.exists()) {
                 throw new IllegalStateException("can not find arthas-core.jar under arthasHome: " + arthasHome);
             }
-            AttachArthasClassloader arthasClassLoader = new AttachArthasClassloader(
-                    new URL[] { arthasCoreJarFile.toURI().toURL() });
-
+            arthasClassLoader = new AttachArthasClassloader(new URL[]{arthasCoreJarFile.toURI().toURL()});
             /**
              * <pre>
              * ArthasBootstrap bootstrap = ArthasBootstrap.getInstance(inst);
              * </pre>
              */
-            Class<?> bootstrapClass = arthasClassLoader.loadClass(ARTHAS_BOOTSTRAP);
-            Object bootstrap = bootstrapClass.getMethod(GET_INSTANCE, Instrumentation.class, Map.class).invoke(null,
+            bootstrapClass = arthasClassLoader.loadClass(ARTHAS_BOOTSTRAP);
+            bootstrap = bootstrapClass.getMethod(GET_INSTANCE, Instrumentation.class, Map.class).invoke(null,
                     instrumentation, configMap);
             boolean isBind = (Boolean) bootstrapClass.getMethod(IS_BIND).invoke(bootstrap);
             if (!isBind) {
@@ -139,6 +143,24 @@ public class ArthasAgent {
         }
     }
 
+    public void destory() {
+        try {
+            Class.forName("java.arthas.SpyAPI"); // 加载不到会抛异常
+            if (!SpyAPI.isInited()) {
+                return;
+            }
+        } catch (Throwable e) {
+            // ignore
+        }
+        try {
+            if (bootstrapClass != null && bootstrap != null) {
+                bootstrapClass.getMethod(RESET).invoke(bootstrap);
+                bootstrapClass.getMethod(DESTORY).invoke(bootstrap);
+            }
+        } catch (Throwable e) {
+            errorMessage = e.getMessage();
+        }
+    }
     private static File createTempDir() {
         File baseDir = new File(System.getProperty("user.dir"), "arthas-tmp");
         if(!baseDir.exists()){

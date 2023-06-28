@@ -3,6 +3,9 @@
 #### 发版
 ./mvnw clean deploy -DskipTests -P dev -P full
 
+### 3.6.8-kyarthas-r2
+修复 tunnel server 跳转问题(KE-42153)
+
 ### 3.6.8-kyarthas-r1
 支持 runtime destory arthas agent(KE-41443)
 
